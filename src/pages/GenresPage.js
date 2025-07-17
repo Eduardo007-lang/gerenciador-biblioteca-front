@@ -9,15 +9,27 @@ const GenresPage = () => {
     const [editingGenre, setEditingGenre] = useState(null);
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
+    const [pagination, setPagination] = useState({
+        current_page: 1,
+        last_page: 1,
+        next_page_url: null,
+        prev_page_url: null
+    });
 
     useEffect(() => {
         fetchGenres();
     }, []);
 
-    const fetchGenres = async () => {
+    const fetchGenres = async (page = 1) => {
         try {
-            const response = await genreApi.getAll();
-            setGenres(response.data);
+            const response = await genreApi.getAll(page);
+            setGenres(Array.isArray(response.data.data) ? response.data.data : []); // Proteção extra
+            setPagination({
+                current_page: response.data.current_page,
+                last_page: response.data.last_page,
+                next_page_url: response.data.next_page_url,
+                prev_page_url: response.data.prev_page_url
+            });
             setError('');
         } catch (err) {
             setError('Erro ao carregar gêneros: ' + (err.response?.data?.message || err.message));
@@ -118,10 +130,10 @@ const GenresPage = () => {
                     </tr>
                 </thead>
                 <tbody>
-                    {genres.length === 0 ? (
+                    {(Array.isArray(genres) ? genres : []).length === 0 ? (
                         <tr><td colSpan="3" style={styles.tdCenter}>Nenhum gênero encontrado.</td></tr>
                     ) : (
-                        genres.map(genre => (
+                        (Array.isArray(genres) ? genres : []).map(genre => (
                             <tr key={genre.id}>
                                 <td style={styles.td}>{genre.id}</td>
                                 <td style={styles.td}>{genre.genre}</td>
@@ -134,6 +146,24 @@ const GenresPage = () => {
                     )}
                 </tbody>
             </table>
+            {/* Botões de paginação */}
+            <div style={{ marginTop: 20, textAlign: 'center' }}>
+                <button
+                    onClick={() => fetchGenres(pagination.current_page - 1)}
+                    disabled={!pagination.prev_page_url}
+                    style={{ marginRight: 10 }}
+                >
+                    Anterior
+                </button>
+                <span>Página {pagination.current_page} de {pagination.last_page}</span>
+                <button
+                    onClick={() => fetchGenres(pagination.current_page + 1)}
+                    disabled={!pagination.next_page_url}
+                    style={{ marginLeft: 10 }}
+                >
+                    Próxima
+                </button>
+            </div>
         </div>
     );
 };

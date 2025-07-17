@@ -17,6 +17,12 @@ const LoansPage = () => {
   });
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [pagination, setPagination] = useState({
+    current_page: 1,
+    last_page: 1,
+    next_page_url: null,
+    prev_page_url: null
+  });
 
 
   useEffect(() => {
@@ -25,10 +31,16 @@ const LoansPage = () => {
     fetchBooks();
   }, []);
 
-  const fetchLoans = async () => {
+  const fetchLoans = async (page = 1) => {
     try {
-      const response = await loanApi.getAll();
-      setLoans(response.data);
+      const response = await loanApi.getAll(page);
+      setLoans(Array.isArray(response.data.data) ? response.data.data : []);
+      setPagination({
+        current_page: response.data.current_page,
+        last_page: response.data.last_page,
+        next_page_url: response.data.next_page_url,
+        prev_page_url: response.data.prev_page_url
+      });
       setError("");
     } catch (err) {
       setError(
@@ -41,7 +53,7 @@ const LoansPage = () => {
   const fetchUsers = async () => {
     try {
       const response = await userApi.getAll();
-      setUsers(response.data);
+      setUsers(Array.isArray(response.data.data) ? response.data.data : []); // Proteção extra
       setError("");
     } catch (err) {
       setError(
@@ -54,11 +66,10 @@ const LoansPage = () => {
   const fetchBooks = async () => {
     try {
       const response = await bookApi.getAll();
-      setBooks(
-        response.data.filter(
-          (b) => b.status === "available" || b.status === "borrowed"
-        )
-      );
+      const booksArray = Array.isArray(response.data.data) ? response.data.data : [];
+      setBooks(booksArray.filter(
+        (b) => b.status === "available" || b.status === "borrowed"
+      ));
       setError("");
     } catch (err) {
       setError(
@@ -220,7 +231,7 @@ const LoansPage = () => {
               style={styles.inputField}
             >
               <option value="">Selecione um Usuário</option>
-              {users.map((user) => (
+              {(Array.isArray(users) ? users : []).map((user) => (
                 <option key={user.id} value={user.id}>
                   {user.name}
                 </option>
@@ -251,9 +262,7 @@ const LoansPage = () => {
               style={styles.inputField}
             >
               <option value="">Selecione um Livro</option>
-              {books
-                .filter((book) => book.status === "available")
-                .map((book) => (
+              {(Array.isArray(books) ? books : []).filter((book) => book.status === "available").map((book) => (
                   <option key={book.id} value={book.id}>
                     {getBookAvailabilityForNewLoan(book)}
                   </option>
@@ -304,14 +313,14 @@ const LoansPage = () => {
           </tr>
         </thead>
         <tbody>
-          {loans.length === 0 ? (
+          {(Array.isArray(loans) ? loans : []).length === 0 ? (
             <tr>
               <td colSpan="7" style={styles.tdCenter}>
                 Nenhum empréstimo encontrado.
               </td>
             </tr>
           ) : (
-            loans.map((loan) => (
+            (Array.isArray(loans) ? loans : []).map((loan) => (
               <tr key={loan.id}>
                 <td style={styles.td}>{loan.id}</td>
                 <td style={styles.td}>{
@@ -355,6 +364,24 @@ const LoansPage = () => {
           )}
         </tbody>
       </table>
+      {/* Botões de paginação */}
+      <div style={{ marginTop: 20, textAlign: 'center' }}>
+        <button
+          onClick={() => fetchLoans(pagination.current_page - 1)}
+          disabled={!pagination.prev_page_url}
+          style={{ marginRight: 10 }}
+        >
+          Anterior
+        </button>
+        <span>Página {pagination.current_page} de {pagination.last_page}</span>
+        <button
+          onClick={() => fetchLoans(pagination.current_page + 1)}
+          disabled={!pagination.next_page_url}
+          style={{ marginLeft: 10 }}
+        >
+          Próxima
+        </button>
+      </div>
     </div>
   );
 };

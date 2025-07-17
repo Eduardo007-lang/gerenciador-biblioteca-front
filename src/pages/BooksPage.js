@@ -16,16 +16,28 @@ const BooksPage = () => {
   const [editingBook, setEditingBook] = useState(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [pagination, setPagination] = useState({
+    current_page: 1,
+    last_page: 1,
+    next_page_url: null,
+    prev_page_url: null
+  });
 
   useEffect(() => {
     fetchBooks();
     fetchGenres();
   }, []);
 
-  const fetchBooks = async () => {
+  const fetchBooks = async (page = 1) => {
     try {
-      const response = await bookApi.getAll();
-      setBooks(response.data);
+      const response = await bookApi.getAll(page);
+      setBooks(Array.isArray(response.data.data) ? response.data.data : []);
+      setPagination({
+        current_page: response.data.current_page,
+        last_page: response.data.last_page,
+        next_page_url: response.data.next_page_url,
+        prev_page_url: response.data.prev_page_url
+      });
       setError("");
     } catch (err) {
       setError(
@@ -38,8 +50,8 @@ const BooksPage = () => {
 const fetchGenres = async () => {
     try {
         const response = await genreApi.getAll();
-        
-        const formattedGenres = response.data.map(genre => ({
+        const genresArray = Array.isArray(response.data.data) ? response.data.data : [];
+        const formattedGenres = genresArray.map(genre => ({
             value: genre.id,
             label: genre.genre 
         }));
@@ -295,14 +307,14 @@ const fetchGenres = async () => {
           </tr>
         </thead>
         <tbody>
-          {books.length === 0 ? (
+          {(Array.isArray(books) ? books : []).length === 0 ? (
             <tr>
               <td colSpan="8" style={styles.tdCenter}>
                 Nenhum livro encontrado.
               </td>
             </tr>
           ) : (
-            books.map((book) => (
+            (Array.isArray(books) ? books : []).map((book) => (
               <tr key={book.id}>
                 <td style={styles.td}>{book.id}</td>
                 <td style={styles.td}>{book.name}</td>
@@ -331,6 +343,24 @@ const fetchGenres = async () => {
           )}
         </tbody>
       </table>
+      {/* Botões de paginação */}
+      <div style={{ marginTop: 20, textAlign: 'center' }}>
+        <button
+          onClick={() => fetchBooks(pagination.current_page - 1)}
+          disabled={!pagination.prev_page_url}
+          style={{ marginRight: 10 }}
+        >
+          Anterior
+        </button>
+        <span>Página {pagination.current_page} de {pagination.last_page}</span>
+        <button
+          onClick={() => fetchBooks(pagination.current_page + 1)}
+          disabled={!pagination.next_page_url}
+          style={{ marginLeft: 10 }}
+        >
+          Próxima
+        </button>
+      </div>
     </div>
   );
 };

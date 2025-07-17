@@ -9,15 +9,27 @@ const UsersPage = () => {
     const [editingUser, setEditingUser] = useState(null);
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
+    const [pagination, setPagination] = useState({
+        current_page: 1,
+        last_page: 1,
+        next_page_url: null,
+        prev_page_url: null
+    });
 
     useEffect(() => {
         fetchUsers();
     }, []);
 
-    const fetchUsers = async () => {
+    const fetchUsers = async (page = 1) => {
         try {
-            const response = await userApi.getAll();
-            setUsers(response.data);
+            const response = await userApi.getAll(page);
+            setUsers(Array.isArray(response.data.data) ? response.data.data : []);
+            setPagination({
+                current_page: response.data.current_page,
+                last_page: response.data.last_page,
+                next_page_url: response.data.next_page_url,
+                prev_page_url: response.data.prev_page_url
+            });
             setError('');
         } catch (err) {
             setError('Erro ao carregar usuários: ' + (err.response?.data?.message || err.message));
@@ -152,10 +164,10 @@ const UsersPage = () => {
                     </tr>
                 </thead>
                 <tbody>
-                    {users.length === 0 ? (
+                    {(Array.isArray(users) ? users : []).length === 0 ? (
                         <tr><td colSpan="5" style={styles.tdCenter}>Nenhum usuário encontrado.</td></tr>
                     ) : (
-                        users.map(user => (
+                        (Array.isArray(users) ? users : []).map(user => (
                             <tr key={user.id}>
                                 <td style={styles.td}>{user.id}</td>
                                 <td style={styles.td}>{user.name}</td>
@@ -170,6 +182,24 @@ const UsersPage = () => {
                     )}
                 </tbody>
             </table>
+            {/* Botões de paginação */}
+            <div style={{ marginTop: 20, textAlign: 'center' }}>
+                <button
+                    onClick={() => fetchUsers(pagination.current_page - 1)}
+                    disabled={!pagination.prev_page_url}
+                    style={{ marginRight: 10 }}
+                >
+                    Anterior
+                </button>
+                <span>Página {pagination.current_page} de {pagination.last_page}</span>
+                <button
+                    onClick={() => fetchUsers(pagination.current_page + 1)}
+                    disabled={!pagination.next_page_url}
+                    style={{ marginLeft: 10 }}
+                >
+                    Próxima
+                </button>
+            </div>
         </div>
     );
 };

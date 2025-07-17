@@ -11,7 +11,7 @@ const LoginPage = ({ onLoginSuccess }) => {
     const [credentials, setCredentials] = useState({ email: '', password: '' });
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
-    const [isLoading, setIsLoading] = useState(false); // Para desabilitar o botão enquanto carrega
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -26,10 +26,12 @@ const LoginPage = ({ onLoginSuccess }) => {
 
         try {
             const response = await axios.post(API_LOGIN_URL, credentials);
-            
             const { token, user } = response.data; 
             
+            console.log("Token recebido:", token);
+            
             localStorage.setItem('authToken', token);
+            
 
             setMessage('Login realizado com sucesso! Redirecionando...');
             
